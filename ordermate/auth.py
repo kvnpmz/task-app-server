@@ -56,4 +56,30 @@ def login():
 
     return jsonify({'success': False, 'error': error})
 
+@bp.before_app_request
+def load_logged_in_user():
+    user_id = session.get('user_id')
 
+    if user_id is None:
+        g.user = None
+    else:
+        g.user = get_database_connection().execute(
+            'SELECT * FROM user WHERE id = ?', (user_id,)
+        ).fetchone()
+
+@bp.route('/logout')
+def logout():
+    session.clear()
+    response = jsonify({'message': 'Logged out successfully'})
+    response.status_code = 200
+    return response
+
+def login_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            return jsonify({'success': True})
+
+        return view(**kwargs)
+
+    return wrapped_view
