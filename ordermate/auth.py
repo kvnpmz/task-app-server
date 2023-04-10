@@ -32,3 +32,28 @@ def register():
 
     return jsonify({'error': error})
 
+@bp.route('/login', methods=('POST',))
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    database_connection = get_database_connection()
+    error = None
+    user = database_connection.execute(
+        'SELECT * FROM user WHERE username = ?', (username,)
+    ).fetchone()
+
+    if user is None:
+        error = 'Incorrect username.'
+    elif not check_password_hash(user['password'], password):
+        error = 'Incorrect password.'
+
+    if error is None:
+        session.clear()
+        session['user_id'] = user['id']
+        return jsonify({'success': True})
+
+    return jsonify({'success': False, 'error': error})
+
+
